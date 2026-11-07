@@ -20,10 +20,11 @@ The branch is upstream's release tag plus one commit per change. It gets rebased
 
 ## Deployment
 
-What the patch stack touches decides where Felix runs:
+Felix is the whole Nix on every host in [nixconf](https://github.com/cramt/nixconf), root daemon included. It's built with this repo's own `package.nix` (nixpkgs' Lix recipe can't cross-compile for armv7l).
 
-- **Only `libexpr` is patched (today):** Felix runs as the client `nix`, which is where evaluation happens. The root daemon stays on stock Lix. The daemon never evaluates, so it would gain nothing from Felix and would get security fixes later than nixpkgs ships them.
-- **A patch touches `libstore`, the daemon, or builds:** in the same nixconf commit that bumps to that patch, switch `nix.package` to Felix on the hosts that want it. That patch must also pass the full `installcheck` suite. From then on, Lix security releases have to be rebased onto Felix promptly, because Felix is now the root daemon.
+Because Felix is the root daemon, **Lix security releases come first**: rebase Felix onto the fixed tag, rerun the rules above, and bump nixconf's pinned input before doing anything else. Stock Lix users get those fixes from nixpkgs; Felix only gets them through that rebase.
+
+Any patch outside `libexpr` (store, daemon, builds) must also pass the full `installcheck` suite, since every host runs it as root.
 
 ## Benchmark
 
