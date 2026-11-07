@@ -11,6 +11,7 @@ The branch is upstream's release tag plus one commit per change. It gets rebased
 | Patch | Reference | Effect |
 | --- | --- | --- |
 | Layered attrset updates | NixOS/nix#13987, NixOS/nix@ec2fd2dc2 | `a // b` with a small `b` stores `b` as a layer over `a` instead of copying `a`. |
+| ARM-private syscalls in the seccomp filter | — (libseccomp 2.6.1) | On a native 32-bit ARM host, `set_tls` and the other `__ARM_NR_*` syscalls are resolved by name, so builders no longer die with "Cannot allocate TLS block". Other hosts' filters are unchanged. |
 
 ## Rules for a patch
 

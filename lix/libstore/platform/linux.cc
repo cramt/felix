@@ -446,6 +446,22 @@ static void allowSyscall(scmp_filter_ctx ctx, int syscall) {
         throw SysError("unable to add seccomp rule");
 }
 
+/* ARM's private syscalls (__ARM_NR_BASE + n: set_tls, cacheflush, ...) have no
+   __NR_* constant, so SCMP_SYS() hands libseccomp a pseudo-number for them.
+   libseccomp 2.6.1 translates that for an *added* ARM arch (aarch64 hosts
+   building armv7l), but writes it untranslated into a *native* 32-bit ARM
+   filter, where it matches nothing. On an armv7l host every builder's set_tls
+   then got ENOSYS and glibc aborted with "Cannot allocate TLS block" before
+   main. Resolving the name at runtime gives the real number there and the same
+   pseudo-number on every other host, whose filters are therefore unchanged.
+   Drop once libseccomp resolves pseudo-numbers for the native ARM arch. */
+static int armPrivateSyscall(const char * name, int pseudo)
+{
+    int nr = seccomp_syscall_resolve_name(name);
+    return nr >= 0 ? nr : pseudo;
+}
+#define SCMP_ARM_SYS(name) armPrivateSyscall(#name, SCMP_SYS(name))
+
 #define ALLOW_CHMOD_IF_SAFE(ctx, syscall, modePos) \
     if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, syscall, 1, SCMP_A##modePos(SCMP_CMP_MASKED_EQ, S_ISUID | S_ISGID, 0)) != 0 || \
         seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), syscall, 1, SCMP_A##modePos(SCMP_CMP_MASKED_EQ, S_ISUID, S_ISUID)) != 0 || \
@@ -520,10 +536,10 @@ static std::vector<struct sock_filter> compileSyscallFilter()
     allowSyscall(ctx, SCMP_SYS(bind));
     allowSyscall(ctx, SCMP_SYS(bpf));
     allowSyscall(ctx, SCMP_SYS(break));
-    allowSyscall(ctx, SCMP_SYS(breakpoint));
+    allowSyscall(ctx, SCMP_ARM_SYS(breakpoint));
     allowSyscall(ctx, SCMP_SYS(brk));
     allowSyscall(ctx, SCMP_SYS(cachectl));
-    allowSyscall(ctx, SCMP_SYS(cacheflush));
+    allowSyscall(ctx, SCMP_ARM_SYS(cacheflush));
     allowSyscall(ctx, SCMP_SYS(cachestat));
     allowSyscall(ctx, SCMP_SYS(capget));
     allowSyscall(ctx, SCMP_SYS(capset));
@@ -649,7 +665,7 @@ static std::vector<struct sock_filter> compileSyscallFilter()
     allowSyscall(ctx, SCMP_SYS(get_thread_area));
     allowSyscall(ctx, SCMP_SYS(gettid));
     allowSyscall(ctx, SCMP_SYS(gettimeofday));
-    allowSyscall(ctx, SCMP_SYS(get_tls));
+    allowSyscall(ctx, SCMP_ARM_SYS(get_tls));
     allowSyscall(ctx, SCMP_SYS(getuid));
     allowSyscall(ctx, SCMP_SYS(getuid32));
     allowSyscall(ctx, SCMP_SYS(getxattr));
@@ -901,7 +917,7 @@ static std::vector<struct sock_filter> compileSyscallFilter()
     allowSyscall(ctx, SCMP_SYS(set_thread_area));
     allowSyscall(ctx, SCMP_SYS(set_tid_address));
     allowSyscall(ctx, SCMP_SYS(settimeofday));
-    allowSyscall(ctx, SCMP_SYS(set_tls));
+    allowSyscall(ctx, SCMP_ARM_SYS(set_tls));
     allowSyscall(ctx, SCMP_SYS(setuid));
     allowSyscall(ctx, SCMP_SYS(setuid32));
     // skip setxattr (dangerous)
@@ -987,8 +1003,8 @@ static std::vector<struct sock_filter> compileSyscallFilter()
     allowSyscall(ctx, SCMP_SYS(uretprobe));
     allowSyscall(ctx, SCMP_SYS(uselib));
     allowSyscall(ctx, SCMP_SYS(userfaultfd));
-    allowSyscall(ctx, SCMP_SYS(usr26));
-    allowSyscall(ctx, SCMP_SYS(usr32));
+    allowSyscall(ctx, SCMP_ARM_SYS(usr26));
+    allowSyscall(ctx, SCMP_ARM_SYS(usr32));
     allowSyscall(ctx, SCMP_SYS(ustat));
     allowSyscall(ctx, SCMP_SYS(utime));
     allowSyscall(ctx, SCMP_SYS(utimensat));
