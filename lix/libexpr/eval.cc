@@ -1367,14 +1367,29 @@ Value EvalState::updateAttrs(const Value & v1, const Value & v2)
         return v1;
     }
 
-    auto attrs = ctx.buildBindings(v1.attrs()->size() + v2.attrs()->size());
+    const Bindings & b1 = *v1.attrs();
+    const Bindings & b2 = *v2.attrs();
+
+    /* A small rhs gets layered on top of the lhs rather than copying the
+       lhs; the chain length cap keeps lookups on deep `//` towers bounded. */
+    if (!b1.isLayerListFull() && b2.size() <= evalSettings.bindingsUpdateLayerRhsSizeThreshold) {
+        auto attrs = ctx.buildBindings(b2.size());
+        attrs.layerOnTopOf(b1);
+        for (auto & a : b2) {
+            attrs.insert(a);
+        }
+        ctx.stats.nrOpUpdateValuesCopied += b2.size();
+        return {NewValueAs::attrs, attrs.alreadySorted()};
+    }
+
+    auto attrs = ctx.buildBindings(b1.size() + b2.size());
 
     /* Merge the sets, preferring values from the second set.  Make
        sure to keep the resulting vector in sorted order. */
-    Bindings::iterator i = v1.attrs()->begin();
-    Bindings::iterator j = v2.attrs()->begin();
+    auto i = b1.begin();
+    auto j = b2.begin();
 
-    while (i != v1.attrs()->end() && j != v2.attrs()->end()) {
+    while (i != b1.end() && j != b2.end()) {
         if (i->name == j->name) {
             attrs.insert(*j);
             ++i;
@@ -1386,10 +1401,10 @@ Value EvalState::updateAttrs(const Value & v1, const Value & v2)
         }
     }
 
-    while (i != v1.attrs()->end()) {
+    while (i != b1.end()) {
         attrs.insert(*i++);
     }
-    while (j != v2.attrs()->end()) {
+    while (j != b2.end()) {
         attrs.insert(*j++);
     }
 

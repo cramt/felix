@@ -30,6 +30,6 @@ void BindingsBuilder::insert(std::string_view name, Value value, PosIdx pos)
 
 void Bindings::sort()
 {
-    if (size_) std::sort(begin(), end());
+    std::sort(attrs, attrs + numAttrs);
 }
 }

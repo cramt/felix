@@ -8,6 +8,7 @@ libexpr_setting_definitions = files(
   'settings/allowed-uris.md',
   'settings/debugger-on-trace.md',
   'settings/debugger-on-warn.md',
+  'settings/eval-attrset-update-layer-rhs-threshold.md',
   'settings/eval-cache.md',
   'settings/eval-system.md',
   'settings/ignore-try.md',
