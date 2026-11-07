@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This is Felix, not Lix.** A personal soft fork with AI-assisted patches that Lix does not accept.
+> Report bugs here, never upstream. See [`felix/README.md`](felix/README.md) for the patch stack and benchmarks.
+
 # Lix
 
 **Lix** is an implementation of **Nix**, a powerful package management system for Linux and other Unix systems that makes package management reliable and reproducible.
